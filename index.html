@@ -846,16 +846,17 @@
             window.addEventListener('mouseup', onMouseUp);
             window.addEventListener('mouseleave', onMouseUp);
             
-            // 触摸事件
-            window.addEventListener('touchstart', (e) => {
+            // 触摸事件 - 只在canvas上阻止默认行为，不影响按钮点击
+            const canvas = renderer.domElement;
+            canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 onMouseDown(e);
             }, {passive: false});
-            window.addEventListener('touchmove', (e) => {
+            canvas.addEventListener('touchmove', (e) => {
                 e.preventDefault();
                 onMouseMove(e);
             }, {passive: false});
-            window.addEventListener('touchend', onMouseUp, {passive: false});
+            canvas.addEventListener('touchend', onMouseUp, {passive: false});
         }
 
         let lastVideoTime = -1;
