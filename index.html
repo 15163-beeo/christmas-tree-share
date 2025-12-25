@@ -69,6 +69,7 @@
             padding: 12px; width: 100%; cursor: pointer; transition: 0.3s;
             text-transform: uppercase; font-size: 11px; letter-spacing: 2px;
             border-radius: 4px;
+            display: block; text-align: center; box-sizing: border-box;
         }
         .file-btn:hover { background: rgba(212, 175, 55, 0.1); }
         .file-btn.selected { background: rgba(212, 175, 55, 0.8); color: #000; }
@@ -140,7 +141,7 @@
             <div class="setup-group">
                 <label class="setup-label">添加照片（可多选）</label>
                 <div class="file-input-wrapper">
-                    <button class="file-btn" id="photo-btn" onclick="document.getElementById('photo-input').click()" ontouchend="document.getElementById('photo-input').click()">选择图片</button>
+                    <label class="file-btn" id="photo-btn" for="photo-input">选择图片</label>
                     <input type="file" id="photo-input" multiple accept="image/*" style="display: none;" onchange="handleSetupFiles(this, 'photo-btn')">
                 </div>
             </div>
@@ -148,7 +149,7 @@
             <div class="setup-group">
                 <label class="setup-label">背景音乐</label>
                 <div class="file-input-wrapper">
-                    <button class="file-btn" id="music-btn" onclick="document.getElementById('music-input').click()" ontouchend="document.getElementById('music-input').click()">选择音乐</button>
+                    <label class="file-btn" id="music-btn" for="music-input">选择音乐</label>
                     <input type="file" id="music-input" accept="audio/*" style="display: none;" onchange="handleSetupFiles(this, 'music-btn')">
                 </div>
             </div>
