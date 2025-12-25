@@ -548,9 +548,9 @@
             const tex = new THREE.TextureLoader().load(src);
             tex.colorSpace = THREE.SRGBColorSpace;
             
-            let w = 4, h = 4;
-            if(aspect > 1) h = 4 / aspect;
-            else w = 4 * aspect;
+            let w = 2.5, h = 2.5;
+            if(aspect > 1) h = 2.5 / aspect;
+            else w = 2.5 * aspect;
 
             const geo = new THREE.PlaneGeometry(w, h);
             const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
@@ -637,17 +637,19 @@
 
         function updatePhotoLogic() {
             photoMeshes.forEach((mesh, idx) => {
-                let targetPos, targetScale = 2.0; 
+                let targetPos, targetScale = 1.5; 
                 
                 if (STATE.mode === 'FOCUS' && STATE.focusTarget === mesh) {
-                    targetPos = new THREE.Vector3(0, 0, 60);
-                    targetScale = 5.0;
-                    mesh.lookAt(camera.position);
+                    // 聚焦时：照片飞到相机正前方，居中显示
+                    targetPos = new THREE.Vector3(0, 0, 70);
+                    targetScale = 8.0;
+                    // 让照片面向相机
+                    mesh.rotation.set(0, 0, 0);
                 } else {
                     targetPos = STATE.mode === 'TREE' ? mesh.userData.treePos : mesh.userData.scatterPos;
                     if(STATE.mode !== 'TREE') {
                         mesh.position.y += Math.sin(clock.elapsedTime+idx)*0.02;
-                        targetScale = 3.0;
+                        targetScale = 2.0;
                     }
                     
                     if (STATE.mode === 'TREE') {
@@ -925,8 +927,14 @@
                 snowSystem.geometry.attributes.position.needsUpdate = true;
             }
             
-            // 旋转控制 - 手势优先，否则用鼠标/触摸旋转
-            if (STATE.mode === 'SCATTER' && STATE.hand.detected) {
+            // 旋转控制 - 聚焦模式下停止旋转
+            if (STATE.mode === 'FOCUS') {
+                // 聚焦时停止旋转，让照片居中
+                mouseRotationY *= 0.9;
+                mouseRotationX *= 0.9;
+                STATE.rotation.x *= 0.9;
+                STATE.rotation.y *= 0.95;
+            } else if (STATE.mode === 'SCATTER' && STATE.hand.detected) {
                 const tx = STATE.hand.y * Math.PI * 0.25; const ty = STATE.hand.x * Math.PI * 0.9;
                 STATE.rotation.x += (tx - STATE.rotation.x) * 3 * dt; STATE.rotation.y += (ty - STATE.rotation.y) * 3 * dt;
             } else {
