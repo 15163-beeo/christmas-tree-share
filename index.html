@@ -726,8 +726,8 @@
                 if (STATE.mode === 'SCATTER' || STATE.mode === 'TREE') {
                     const deltaX = e.clientX - lastMouseX;
                     const deltaY = e.clientY - lastMouseY;
-                    mouseRotationY += deltaX * 0.005;
-                    mouseRotationX += deltaY * 0.003;
+                    mouseRotationY += deltaX * 0.002;
+                    mouseRotationX += deltaY * 0.001;
                     mouseRotationX = Math.max(-0.5, Math.min(0.5, mouseRotationX));
                     lastMouseX = e.clientX;
                     lastMouseY = e.clientY;
@@ -783,8 +783,8 @@
                 if (STATE.mode === 'SCATTER' || STATE.mode === 'TREE') {
                     const deltaX = e.touches[0].clientX - lastTouchX;
                     const deltaY = e.touches[0].clientY - lastTouchY;
-                    mouseRotationY += deltaX * 0.005;
-                    mouseRotationX += deltaY * 0.003;
+                    mouseRotationY += deltaX * 0.002;
+                    mouseRotationX += deltaY * 0.001;
                     mouseRotationX = Math.max(-0.5, Math.min(0.5, mouseRotationX));
                     lastTouchX = e.touches[0].clientX;
                     lastTouchY = e.touches[0].clientY;
