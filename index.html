@@ -116,37 +116,37 @@
     <!-- 1. SYSTEM LOADER & PERMISSION -->
     <div id="system-loader" class="fullscreen-overlay" style="z-index: 200;">
         <div class="spinner" id="sys-spinner"></div>
-        <div class="loader-text" id="sys-status">Preloading 3D Assets...</div>
-        <button id="init-btn" class="action-btn" onclick="requestPermissionAndNext()">Initialize & Allow Camera</button>
+        <div class="loader-text" id="sys-status">正在加载3D资源...</div>
+        <button id="init-btn" class="action-btn" onclick="requestPermissionAndNext()">初始化 & 允许摄像头</button>
     </div>
 
     <!-- 2. SETUP SCREEN -->
     <div id="setup-screen" class="fullscreen-overlay" style="z-index: 150; display: none;">
         <div class="setup-container">
-            <h2 style="font-family: 'Cinzel'; margin-bottom: 30px; font-weight: 400;">Holiday Setup</h2>
+            <h2 style="font-family: 'Cinzel'; margin-bottom: 30px; font-weight: 400;">节日设置</h2>
             
             <div class="setup-group">
-                <label class="setup-label">Greeting Message</label>
-                <input type="text" id="greeting-input" class="setup-input" placeholder="Merry Christmas" value="Merry Christmas" maxlength="25">
+                <label class="setup-label">祝福语</label>
+                <input type="text" id="greeting-input" class="setup-input" placeholder="圣诞快乐" value="圣诞快乐" maxlength="25">
             </div>
 
             <div class="setup-group">
-                <label class="setup-label">Add Photos (Multiple)</label>
+                <label class="setup-label">添加照片（可多选）</label>
                 <div class="file-input-wrapper">
-                    <button class="file-btn" id="photo-btn" onclick="document.getElementById('photo-input').click()">Select Images</button>
+                    <button class="file-btn" id="photo-btn" onclick="document.getElementById('photo-input').click()">选择图片</button>
                     <input type="file" id="photo-input" multiple accept="image/*" style="display: none;" onchange="handleSetupFiles(this, 'photo-btn')">
                 </div>
             </div>
 
             <div class="setup-group">
-                <label class="setup-label">Background Music</label>
+                <label class="setup-label">背景音乐</label>
                 <div class="file-input-wrapper">
-                    <button class="file-btn" id="music-btn" onclick="document.getElementById('music-input').click()">Select Audio</button>
+                    <button class="file-btn" id="music-btn" onclick="document.getElementById('music-input').click()">选择音乐</button>
                     <input type="file" id="music-input" accept="audio/*" style="display: none;" onchange="handleSetupFiles(this, 'music-btn')">
                 </div>
             </div>
 
-            <button class="action-btn" onclick="finishSetupAndReveal()">Start Magic</button>
+            <button class="action-btn" onclick="finishSetupAndReveal()">开始魔法</button>
         </div>
     </div>
 
@@ -155,7 +155,7 @@
     <canvas id="fireworks-canvas"></canvas>
 
     <div id="ui-layer">
-        <h1 id="main-title">Merry Christmas</h1>
+        <h1 id="main-title">圣诞快乐</h1>
     </div>
 
     <!-- WEBCAM -->
@@ -181,7 +181,7 @@
             const btn = document.getElementById('init-btn');
             const spinner = document.getElementById('sys-spinner');
 
-            status.innerHTML = "Welcome.<br>Please click below to enable camera access<br>for the full immersive experience.";
+            status.innerHTML = "欢迎！<br>请点击下方按钮启用摄像头<br>获得完整的沉浸式体验。";
             spinner.style.display = 'none';
             btn.style.display = 'block';
         };
@@ -194,13 +194,13 @@
 
             btn.style.display = 'none';
             spinner.style.display = 'block';
-            status.innerText = "Requesting Camera Access...";
+            status.innerText = "正在请求摄像头权限...";
 
             try {
                 // Keep the stream open!
                 globalStream = await navigator.mediaDevices.getUserMedia({ video: true });
                 isCameraReady = true;
-                status.innerText = "Camera Access Granted!";
+                status.innerText = "摄像头权限已获取！";
                 
                 // Initialize MediaPipe logic now, using the SAVED stream
                 if(window.initMediaPipeModule) window.initMediaPipeModule(globalStream);
@@ -208,7 +208,7 @@
             } catch (e) {
                 console.warn("Camera denied:", e);
                 isCameraReady = false;
-                status.innerText = "Camera Skipped. Mouse Control Enabled.";
+                status.innerText = "已跳过摄像头，鼠标控制已启用。";
             }
 
             // Transition to Setup
@@ -223,7 +223,7 @@
             const btn = document.getElementById(btnId);
             if(input.files && input.files.length > 0) {
                 btn.classList.add('selected');
-                btn.innerText = `${input.files.length} File(s) Selected`;
+                btn.innerText = `已选择 ${input.files.length} 个文件`;
                 if(btnId === 'photo-btn') {
                     userPhotos = [];
                     Array.from(input.files).forEach(file => {
@@ -338,6 +338,17 @@
         let snowSystem;
         let handLandmarker, video, webcamCanvas, webcamCtx;
         let raycaster = new THREE.Raycaster(); let mouse = new THREE.Vector2();
+        
+        // 鼠标拖拽旋转相关变量
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let targetRotationY = 0;
+        let targetRotationX = 0;
+        const rotationSpeed = 0.002; // 旋转速度（慢一点）
+        
+        // 聚焦图片拖拽相关变量
+        let isFocusDragging = false;
+        let focusPhotoOffset = { x: 0, y: 0 };
         
         // InstancedMesh 相关
         let goldMesh, silverMesh, gemMesh, emeraldMesh, dustSystem;
@@ -548,7 +559,7 @@
             const tex = new THREE.TextureLoader().load(src);
             tex.colorSpace = THREE.SRGBColorSpace;
             
-            let w = 2.5, h = 2.5;
+            let w = 2.5, h = 2.5;  // 图片尺寸
             if(aspect > 1) h = 2.5 / aspect;
             else w = 2.5 * aspect;
 
@@ -637,19 +648,28 @@
 
         function updatePhotoLogic() {
             photoMeshes.forEach((mesh, idx) => {
-                let targetPos, targetScale = 1.5; 
+                let targetPos, targetScale = 1.5;  // 默认尺寸
                 
                 if (STATE.mode === 'FOCUS' && STATE.focusTarget === mesh) {
-                    // 聚焦时：照片飞到相机正前方，居中显示
-                    targetPos = new THREE.Vector3(0, 0, 70);
-                    targetScale = 8.0;
-                    // 让照片面向相机
-                    mesh.rotation.set(0, 0, 0);
+                    // 聚焦的图片移到scene中（不跟随mainGroup旋转）
+                    if (mesh.parent === mainGroup) {
+                        mainGroup.remove(mesh);
+                        scene.add(mesh);
+                    }
+                    // 聚焦时在屏幕中间，固定不动
+                    targetPos = new THREE.Vector3(focusPhotoOffset.x, focusPhotoOffset.y - 5, 60);
+                    targetScale = 8.0;  // 聚焦时放大更多
+                    mesh.lookAt(camera.position);
                 } else {
+                    // 非聚焦的图片放回mainGroup中（跟随旋转）
+                    if (mesh.parent === scene) {
+                        scene.remove(mesh);
+                        mainGroup.add(mesh);
+                    }
                     targetPos = STATE.mode === 'TREE' ? mesh.userData.treePos : mesh.userData.scatterPos;
                     if(STATE.mode !== 'TREE') {
                         mesh.position.y += Math.sin(clock.elapsedTime+idx)*0.02;
-                        targetScale = 2.0;
+                        targetScale = 2.0;  // 散开时稍大一点
                     }
                     
                     if (STATE.mode === 'TREE') {
@@ -689,22 +709,17 @@
         function changeState(newState) {
             if (STATE.mode === newState) return;
             
-            // FIXED: Fireworks only on COLLAPSE (Scatter -> Tree), AND has expanded once
+            // 烟花已取消
             if (newState === 'SCATTER') {
                 STATE.hasExpandedOnce = true;
             }
-            if (newState === 'TREE' && STATE.mode === 'SCATTER' && STATE.hasExpandedOnce) {
-                 triggerChapter3Fireworks();
-            }
+            // if (newState === 'TREE' && STATE.mode === 'SCATTER' && STATE.hasExpandedOnce) {
+            //      triggerChapter3Fireworks();
+            // }
             
             STATE.mode = newState;
             STATE.focusTarget = null;
         }
-
-        // 鼠标拖拽旋转变量
-        let isDragging = false;
-        let lastMouseX = 0, lastMouseY = 0;
-        let mouseRotationX = 0, mouseRotationY = 0;
 
         function setupInteraction() {
             window.addEventListener('resize', () => {
@@ -715,115 +730,132 @@
                 resizeFireworks();
             });
 
-            // 鼠标拖拽旋转
-            window.addEventListener('mousedown', (e) => {
-                if (!STATE.interactionEnabled) return;
-                isDragging = true;
-                lastMouseX = e.clientX;
-                lastMouseY = e.clientY;
-            });
-
-            window.addEventListener('mousemove', (e) => {
-                if (!isDragging || !STATE.interactionEnabled) return;
-                if (STATE.mode === 'SCATTER' || STATE.mode === 'TREE') {
-                    const deltaX = e.clientX - lastMouseX;
-                    const deltaY = e.clientY - lastMouseY;
-                    mouseRotationY += deltaX * 0.002;
-                    mouseRotationX += deltaY * 0.001;
-                    mouseRotationX = Math.max(-0.5, Math.min(0.5, mouseRotationX));
-                    lastMouseX = e.clientX;
-                    lastMouseY = e.clientY;
-                }
-            });
-
-            window.addEventListener('mouseup', (e) => {
+            // 鼠标按下事件
+            let clickStartTime = 0;
+            let clickStartPos = { x: 0, y: 0 };
+            
+            const onMouseDown = (event) => {
                 if (!STATE.interactionEnabled) return;
                 
-                // 如果没有拖拽（点击），执行状态切换
-                const moved = Math.abs(e.clientX - lastMouseX) + Math.abs(e.clientY - lastMouseY);
-                if (isDragging && moved < 5) {
-                    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-                    raycaster.setFromCamera(mouse, camera);
-                    
-                    if (STATE.mode === 'TREE') {
-                        changeState('SCATTER');
-                    } else if (STATE.mode === 'SCATTER') {
-                        const intersects = raycaster.intersectObjects(photoMeshes, true);
-                        if (intersects.length > 0) {
-                            let obj = intersects[0].object;
-                            while(obj.parent && !photoMeshes.includes(obj)) obj = obj.parent;
-                            if (photoMeshes.includes(obj)) {
-                                STATE.mode = 'FOCUS';
-                                STATE.focusTarget = obj;
-                                STATE.photoIndex = photoMeshes.indexOf(obj);
-                                isDragging = false;
-                                return;
-                            }
+                const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+                const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+                
+                clickStartTime = Date.now();
+                clickStartPos = { x: clientX, y: clientY };
+                
+                mouse.x = (clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                
+                if (STATE.mode === 'FOCUS') {
+                    // 聚焦模式下，检测是否点击了聚焦的图片，开始拖拽
+                    const intersects = raycaster.intersectObjects([STATE.focusTarget], true);
+                    if (intersects.length > 0) {
+                        isFocusDragging = true;
+                        previousMousePosition = { x: clientX, y: clientY };
+                        return;
+                    }
+                    // 点击其他地方退出聚焦
+                    changeState('SCATTER');
+                    focusPhotoOffset = { x: 0, y: 0 };
+                    return;
+                }
+                
+                if (STATE.mode === 'TREE') {
+                    // TREE模式下也支持拖拽旋转
+                    isDragging = true;
+                    previousMousePosition = { x: clientX, y: clientY };
+                } else if (STATE.mode === 'SCATTER') {
+                    // 检测是否点击了照片
+                    const intersects = raycaster.intersectObjects(photoMeshes, true);
+                    if (intersects.length > 0) {
+                        let obj = intersects[0].object;
+                        while(obj.parent && !photoMeshes.includes(obj)) obj = obj.parent;
+                        if (photoMeshes.includes(obj)) {
+                            STATE.mode = 'FOCUS';
+                            STATE.focusTarget = obj;
+                            STATE.photoIndex = photoMeshes.indexOf(obj);
+                            focusPhotoOffset = { x: 0, y: 0 };  // 重置偏移
+                            return;
                         }
+                    }
+                    // 开始拖拽旋转（但不立即切换状态）
+                    isDragging = true;
+                    previousMousePosition = { x: clientX, y: clientY };
+                }
+            };
+            
+            // 鼠标移动事件
+            const onMouseMove = (event) => {
+                if (!STATE.interactionEnabled) return;
+                
+                const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+                const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+                
+                if (isFocusDragging && STATE.mode === 'FOCUS') {
+                    // 拖拽聚焦的图片
+                    const deltaX = (clientX - previousMousePosition.x) * 0.1;
+                    const deltaY = -(clientY - previousMousePosition.y) * 0.1;
+                    focusPhotoOffset.x += deltaX;
+                    focusPhotoOffset.y += deltaY;
+                    previousMousePosition = { x: clientX, y: clientY };
+                } else if (isDragging && (STATE.mode === 'SCATTER' || STATE.mode === 'TREE')) {
+                    // 拖拽旋转场景
+                    const deltaX = clientX - previousMousePosition.x;
+                    const deltaY = clientY - previousMousePosition.y;
+                    
+                    targetRotationY += deltaX * rotationSpeed;
+                    targetRotationX += deltaY * rotationSpeed;
+                    
+                    // 限制X轴旋转角度
+                    targetRotationX = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, targetRotationX));
+                    
+                    previousMousePosition = { x: clientX, y: clientY };
+                }
+            };
+            
+            // 鼠标松开事件
+            const onMouseUp = (event) => {
+                // 判断是否是点击（短时间内没有移动太多）
+                const clientX = event.clientX || (event.changedTouches && event.changedTouches[0].clientX) || clickStartPos.x;
+                const clientY = event.clientY || (event.changedTouches && event.changedTouches[0].clientY) || clickStartPos.y;
+                const timeDiff = Date.now() - clickStartTime;
+                const distMoved = Math.sqrt(Math.pow(clientX - clickStartPos.x, 2) + Math.pow(clientY - clickStartPos.y, 2));
+                
+                // 如果是短点击（<300ms）且移动距离小（<10px）
+                if (timeDiff < 300 && distMoved < 10 && !isFocusDragging) {
+                    if (STATE.mode === 'SCATTER') {
                         changeState('TREE');
-                    } else if (STATE.mode === 'FOCUS') {
+                    } else if (STATE.mode === 'TREE') {
                         changeState('SCATTER');
                     }
                 }
+                
                 isDragging = false;
-            });
-
-            // 触摸拖拽旋转
-            let lastTouchX = 0, lastTouchY = 0;
-            let isTouchDragging = false;
-
+                isFocusDragging = false;
+            };
+            
+            // 点击事件（已废弃，用onMouseUp处理）
+            const onClick = (event) => {
+                // 不再使用
+            };
+            
+            // 绑定事件
+            window.addEventListener('mousedown', onMouseDown);
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+            window.addEventListener('mouseleave', onMouseUp);
+            
+            // 触摸事件
             window.addEventListener('touchstart', (e) => {
-                if (!STATE.interactionEnabled) return;
-                isTouchDragging = true;
-                lastTouchX = e.touches[0].clientX;
-                lastTouchY = e.touches[0].clientY;
+                e.preventDefault();
+                onMouseDown(e);
             }, {passive: false});
-
             window.addEventListener('touchmove', (e) => {
-                if (!isTouchDragging || !STATE.interactionEnabled) return;
-                if (STATE.mode === 'SCATTER' || STATE.mode === 'TREE') {
-                    const deltaX = e.touches[0].clientX - lastTouchX;
-                    const deltaY = e.touches[0].clientY - lastTouchY;
-                    mouseRotationY += deltaX * 0.002;
-                    mouseRotationX += deltaY * 0.001;
-                    mouseRotationX = Math.max(-0.5, Math.min(0.5, mouseRotationX));
-                    lastTouchX = e.touches[0].clientX;
-                    lastTouchY = e.touches[0].clientY;
-                }
+                e.preventDefault();
+                onMouseMove(e);
             }, {passive: false});
-
-            window.addEventListener('touchend', (e) => {
-                if (!STATE.interactionEnabled) return;
-                
-                const moved = Math.abs(e.changedTouches[0].clientX - lastTouchX) + Math.abs(e.changedTouches[0].clientY - lastTouchY);
-                if (isTouchDragging && moved < 10) {
-                    mouse.x = (e.changedTouches[0].clientX / window.innerWidth) * 2 - 1;
-                    mouse.y = -(e.changedTouches[0].clientY / window.innerHeight) * 2 + 1;
-                    raycaster.setFromCamera(mouse, camera);
-                    
-                    if (STATE.mode === 'TREE') {
-                        changeState('SCATTER');
-                    } else if (STATE.mode === 'SCATTER') {
-                        const intersects = raycaster.intersectObjects(photoMeshes, true);
-                        if (intersects.length > 0) {
-                            let obj = intersects[0].object;
-                            while(obj.parent && !photoMeshes.includes(obj)) obj = obj.parent;
-                            if (photoMeshes.includes(obj)) {
-                                STATE.mode = 'FOCUS';
-                                STATE.focusTarget = obj;
-                                STATE.photoIndex = photoMeshes.indexOf(obj);
-                                isTouchDragging = false;
-                                return;
-                            }
-                        }
-                        changeState('TREE');
-                    } else if (STATE.mode === 'FOCUS') {
-                        changeState('SCATTER');
-                    }
-                }
-                isTouchDragging = false;
-            }, {passive: false});
+            window.addEventListener('touchend', onMouseUp, {passive: false});
         }
 
         let lastVideoTime = -1;
@@ -927,29 +959,20 @@
                 snowSystem.geometry.attributes.position.needsUpdate = true;
             }
             
-            // 旋转控制 - 聚焦模式下停止旋转
-            if (STATE.mode === 'FOCUS') {
-                // 聚焦时停止旋转，让照片居中
-                mouseRotationY *= 0.9;
-                mouseRotationX *= 0.9;
-                STATE.rotation.x *= 0.9;
-                STATE.rotation.y *= 0.95;
-            } else if (STATE.mode === 'SCATTER' && STATE.hand.detected) {
+            // 旋转控制
+            if (STATE.mode === 'SCATTER' && STATE.hand.detected) {
                 const tx = STATE.hand.y * Math.PI * 0.25; const ty = STATE.hand.x * Math.PI * 0.9;
                 STATE.rotation.x += (tx - STATE.rotation.x) * 3 * dt; STATE.rotation.y += (ty - STATE.rotation.y) * 3 * dt;
+            } else if ((STATE.mode === 'SCATTER' || STATE.mode === 'TREE') && isDragging) {
+                // 拖拽时直接应用目标旋转
+                STATE.rotation.y += (targetRotationY - STATE.rotation.y) * 0.1;
+                STATE.rotation.x += (targetRotationX - STATE.rotation.x) * 0.1;
             } else {
-                // 鼠标/触摸拖拽旋转
-                STATE.rotation.y += mouseRotationY;
-                STATE.rotation.x += mouseRotationX;
-                mouseRotationY *= 0.95; // 惯性衰减
-                mouseRotationX *= 0.95;
-                
-                // 自动旋转（当没有拖拽时）
-                if (Math.abs(mouseRotationY) < 0.001) {
-                    if (STATE.mode === 'TREE') STATE.rotation.y += 0.3 * dt; 
-                    else STATE.rotation.y += 0.1 * dt;
+                // 所有模式下都自动旋转（包括FOCUS）
+                STATE.rotation.y += 0.3 * dt;
+                if (STATE.mode === 'TREE') {
+                    STATE.rotation.x *= 0.95;
                 }
-                STATE.rotation.x *= 0.98; // X轴回正
             }
             mainGroup.rotation.x = STATE.rotation.x; mainGroup.rotation.y = STATE.rotation.y;
             
