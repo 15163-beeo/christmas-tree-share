@@ -140,18 +140,18 @@
 
             <div class="setup-group">
                 <label class="setup-label">添加照片（可多选）</label>
-                <div class="file-input-wrapper">
-                    <label class="file-btn" id="photo-btn" for="photo-input">选择图片</label>
-                    <input type="file" id="photo-input" multiple accept="image/*" style="display: none;" onchange="handleSetupFiles(this, 'photo-btn')">
-                </div>
+                <label class="file-btn" id="photo-btn">
+                    <span id="photo-btn-text">选择图片</span>
+                    <input type="file" id="photo-input" multiple accept="image/*" style="display: none;" onchange="handleSetupFiles(this, 'photo-btn-text')">
+                </label>
             </div>
 
             <div class="setup-group">
                 <label class="setup-label">背景音乐</label>
-                <div class="file-input-wrapper">
-                    <label class="file-btn" id="music-btn" for="music-input">选择音乐</label>
-                    <input type="file" id="music-input" accept="audio/*" style="display: none;" onchange="handleSetupFiles(this, 'music-btn')">
-                </div>
+                <label class="file-btn" id="music-btn">
+                    <span id="music-btn-text">选择音乐</span>
+                    <input type="file" id="music-input" accept="audio/*" style="display: none;" onchange="handleSetupFiles(this, 'music-btn-text')">
+                </label>
             </div>
 
             <button class="action-btn" onclick="finishSetupAndReveal()" ontouchend="finishSetupAndReveal()">开始魔法</button>
@@ -227,12 +227,13 @@
         }
 
         // --- PHASE 3: SETUP & REVEAL ---
-        function handleSetupFiles(input, btnId) {
-            const btn = document.getElementById(btnId);
+        function handleSetupFiles(input, spanId) {
+            const span = document.getElementById(spanId);
+            const btn = span.parentElement;
             if(input.files && input.files.length > 0) {
                 btn.classList.add('selected');
-                btn.textContent = `已选择 ${input.files.length} 个文件`;
-                if(btnId === 'photo-btn') {
+                span.textContent = `已选择 ${input.files.length} 个文件`;
+                if(spanId === 'photo-btn-text') {
                     userPhotos = [];
                     const files = Array.from(input.files);
                     let loadedCount = 0;
@@ -246,7 +247,7 @@
                                     aspect: img.width / img.height
                                 });
                                 loadedCount++;
-                                btn.textContent = `已加载 ${loadedCount}/${files.length} 张图片`;
+                                span.textContent = `已加载 ${loadedCount}/${files.length} 张图片`;
                             };
                             img.onerror = () => {
                                 loadedCount++;
@@ -259,7 +260,7 @@
                         };
                         reader.readAsDataURL(file);
                     });
-                } else if (btnId === 'music-btn') {
+                } else if (spanId === 'music-btn-text') {
                     userAudio = input.files[0];
                 }
             }
