@@ -699,6 +699,11 @@
             STATE.focusTarget = null;
         }
 
+        // 鼠标拖拽旋转变量
+        let isDragging = false;
+        let lastMouseX = 0, lastMouseY = 0;
+        let mouseRotationX = 0, mouseRotationY = 0;
+
         function setupInteraction() {
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -708,36 +713,114 @@
                 resizeFireworks();
             });
 
-            const onClick = (event) => {
+            // 鼠标拖拽旋转
+            window.addEventListener('mousedown', (e) => {
                 if (!STATE.interactionEnabled) return;
+                isDragging = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            });
 
-                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-                raycaster.setFromCamera(mouse, camera);
-                
-                if (STATE.mode === 'TREE') {
-                    changeState('SCATTER');
-                } else if (STATE.mode === 'SCATTER') {
-                    // 检测是否点击了照片
-                    const intersects = raycaster.intersectObjects(photoMeshes, true);
-                    if (intersects.length > 0) {
-                        let obj = intersects[0].object;
-                        while(obj.parent && !photoMeshes.includes(obj)) obj = obj.parent;
-                        if (photoMeshes.includes(obj)) {
-                            STATE.mode = 'FOCUS';
-                            STATE.focusTarget = obj;
-                            STATE.photoIndex = photoMeshes.indexOf(obj);
-                            return;
-                        }
-                    }
-                    changeState('TREE');
-                } else if (STATE.mode === 'FOCUS') {
-                    changeState('SCATTER');
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging || !STATE.interactionEnabled) return;
+                if (STATE.mode === 'SCATTER' || STATE.mode === 'TREE') {
+                    const deltaX = e.clientX - lastMouseX;
+                    const deltaY = e.clientY - lastMouseY;
+                    mouseRotationY += deltaX * 0.005;
+                    mouseRotationX += deltaY * 0.003;
+                    mouseRotationX = Math.max(-0.5, Math.min(0.5, mouseRotationX));
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
                 }
-            };
-            window.addEventListener('mousedown', onClick);
+            });
+
+            window.addEventListener('mouseup', (e) => {
+                if (!STATE.interactionEnabled) return;
+                
+                // 如果没有拖拽（点击），执行状态切换
+                const moved = Math.abs(e.clientX - lastMouseX) + Math.abs(e.clientY - lastMouseY);
+                if (isDragging && moved < 5) {
+                    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                    raycaster.setFromCamera(mouse, camera);
+                    
+                    if (STATE.mode === 'TREE') {
+                        changeState('SCATTER');
+                    } else if (STATE.mode === 'SCATTER') {
+                        const intersects = raycaster.intersectObjects(photoMeshes, true);
+                        if (intersects.length > 0) {
+                            let obj = intersects[0].object;
+                            while(obj.parent && !photoMeshes.includes(obj)) obj = obj.parent;
+                            if (photoMeshes.includes(obj)) {
+                                STATE.mode = 'FOCUS';
+                                STATE.focusTarget = obj;
+                                STATE.photoIndex = photoMeshes.indexOf(obj);
+                                isDragging = false;
+                                return;
+                            }
+                        }
+                        changeState('TREE');
+                    } else if (STATE.mode === 'FOCUS') {
+                        changeState('SCATTER');
+                    }
+                }
+                isDragging = false;
+            });
+
+            // 触摸拖拽旋转
+            let lastTouchX = 0, lastTouchY = 0;
+            let isTouchDragging = false;
+
             window.addEventListener('touchstart', (e) => {
-                e.clientX = e.touches[0].clientX; e.clientY = e.touches[0].clientY; onClick(e);
+                if (!STATE.interactionEnabled) return;
+                isTouchDragging = true;
+                lastTouchX = e.touches[0].clientX;
+                lastTouchY = e.touches[0].clientY;
+            }, {passive: false});
+
+            window.addEventListener('touchmove', (e) => {
+                if (!isTouchDragging || !STATE.interactionEnabled) return;
+                if (STATE.mode === 'SCATTER' || STATE.mode === 'TREE') {
+                    const deltaX = e.touches[0].clientX - lastTouchX;
+                    const deltaY = e.touches[0].clientY - lastTouchY;
+                    mouseRotationY += deltaX * 0.005;
+                    mouseRotationX += deltaY * 0.003;
+                    mouseRotationX = Math.max(-0.5, Math.min(0.5, mouseRotationX));
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
+                }
+            }, {passive: false});
+
+            window.addEventListener('touchend', (e) => {
+                if (!STATE.interactionEnabled) return;
+                
+                const moved = Math.abs(e.changedTouches[0].clientX - lastTouchX) + Math.abs(e.changedTouches[0].clientY - lastTouchY);
+                if (isTouchDragging && moved < 10) {
+                    mouse.x = (e.changedTouches[0].clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(e.changedTouches[0].clientY / window.innerHeight) * 2 + 1;
+                    raycaster.setFromCamera(mouse, camera);
+                    
+                    if (STATE.mode === 'TREE') {
+                        changeState('SCATTER');
+                    } else if (STATE.mode === 'SCATTER') {
+                        const intersects = raycaster.intersectObjects(photoMeshes, true);
+                        if (intersects.length > 0) {
+                            let obj = intersects[0].object;
+                            while(obj.parent && !photoMeshes.includes(obj)) obj = obj.parent;
+                            if (photoMeshes.includes(obj)) {
+                                STATE.mode = 'FOCUS';
+                                STATE.focusTarget = obj;
+                                STATE.photoIndex = photoMeshes.indexOf(obj);
+                                isTouchDragging = false;
+                                return;
+                            }
+                        }
+                        changeState('TREE');
+                    } else if (STATE.mode === 'FOCUS') {
+                        changeState('SCATTER');
+                    }
+                }
+                isTouchDragging = false;
             }, {passive: false});
         }
 
@@ -842,13 +925,23 @@
                 snowSystem.geometry.attributes.position.needsUpdate = true;
             }
             
-            // 旋转控制
+            // 旋转控制 - 手势优先，否则用鼠标/触摸旋转
             if (STATE.mode === 'SCATTER' && STATE.hand.detected) {
                 const tx = STATE.hand.y * Math.PI * 0.25; const ty = STATE.hand.x * Math.PI * 0.9;
                 STATE.rotation.x += (tx - STATE.rotation.x) * 3 * dt; STATE.rotation.y += (ty - STATE.rotation.y) * 3 * dt;
             } else {
-                if (STATE.mode === 'TREE') STATE.rotation.y += 0.3 * dt; else STATE.rotation.y += 0.1 * dt;
-                STATE.rotation.x *= 0.95; 
+                // 鼠标/触摸拖拽旋转
+                STATE.rotation.y += mouseRotationY;
+                STATE.rotation.x += mouseRotationX;
+                mouseRotationY *= 0.95; // 惯性衰减
+                mouseRotationX *= 0.95;
+                
+                // 自动旋转（当没有拖拽时）
+                if (Math.abs(mouseRotationY) < 0.001) {
+                    if (STATE.mode === 'TREE') STATE.rotation.y += 0.3 * dt; 
+                    else STATE.rotation.y += 0.1 * dt;
+                }
+                STATE.rotation.x *= 0.98; // X轴回正
             }
             mainGroup.rotation.x = STATE.rotation.x; mainGroup.rotation.y = STATE.rotation.y;
             
