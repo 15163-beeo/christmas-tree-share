@@ -83,6 +83,13 @@
         }
         .action-btn:hover { box-shadow: 0 0 50px rgba(212, 175, 55, 0.6); }
         .action-btn:active { transform: scale(0.95); }
+        
+        /* 确保按钮可点击 */
+        .action-btn, .file-btn { 
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            cursor: pointer;
+        }
 
         #init-btn { display: none; margin-top: 30px; }
 
@@ -117,7 +124,7 @@
     <div id="system-loader" class="fullscreen-overlay" style="z-index: 200;">
         <div class="spinner" id="sys-spinner"></div>
         <div class="loader-text" id="sys-status">正在加载3D资源...</div>
-        <button id="init-btn" class="action-btn" onclick="requestPermissionAndNext()">初始化 & 允许摄像头</button>
+        <button id="init-btn" class="action-btn" onclick="requestPermissionAndNext()" ontouchend="requestPermissionAndNext()">初始化 & 允许摄像头</button>
     </div>
 
     <!-- 2. SETUP SCREEN -->
@@ -133,7 +140,7 @@
             <div class="setup-group">
                 <label class="setup-label">添加照片（可多选）</label>
                 <div class="file-input-wrapper">
-                    <button class="file-btn" id="photo-btn" onclick="document.getElementById('photo-input').click()">选择图片</button>
+                    <button class="file-btn" id="photo-btn" onclick="document.getElementById('photo-input').click()" ontouchend="document.getElementById('photo-input').click()">选择图片</button>
                     <input type="file" id="photo-input" multiple accept="image/*" style="display: none;" onchange="handleSetupFiles(this, 'photo-btn')">
                 </div>
             </div>
@@ -141,12 +148,12 @@
             <div class="setup-group">
                 <label class="setup-label">背景音乐</label>
                 <div class="file-input-wrapper">
-                    <button class="file-btn" id="music-btn" onclick="document.getElementById('music-input').click()">选择音乐</button>
+                    <button class="file-btn" id="music-btn" onclick="document.getElementById('music-input').click()" ontouchend="document.getElementById('music-input').click()">选择音乐</button>
                     <input type="file" id="music-input" accept="audio/*" style="display: none;" onchange="handleSetupFiles(this, 'music-btn')">
                 </div>
             </div>
 
-            <button class="action-btn" onclick="finishSetupAndReveal()">开始魔法</button>
+            <button class="action-btn" onclick="finishSetupAndReveal()" ontouchend="finishSetupAndReveal()">开始魔法</button>
         </div>
     </div>
 
